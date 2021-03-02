@@ -1,11 +1,14 @@
 package me.weekbelt.club.sercurity.service;
 
 import java.util.Optional;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.weekbelt.club.entity.ClubMember;
 import me.weekbelt.club.entity.ClubMemberRole;
 import me.weekbelt.club.repository.ClubMemberRepository;
+import me.weekbelt.club.sercurity.dto.ClubAuthMemberDTO;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
@@ -44,9 +47,17 @@ public class ClubOAuth2UserDetailsService extends DefaultOAuth2UserService {
             email = oAuth2User.getAttribute("email");
         }
 
-        ClubMember clubMember = saveSocialMember(email);
+        log.info("EMAIL: " + email);
 
-        return oAuth2User;
+        final ClubMember member = saveSocialMember(email);
+
+//        ClubMember clubMember = saveSocialMember(email);
+//
+//        return oAuth2User;
+        final ClubAuthMemberDTO clubAuthMember = new ClubAuthMemberDTO(member.getEmail(), member.getPassword(), true, member.getRoleSet().stream().map(
+            role -> new SimpleGrantedAuthority("ROLE_" + role.name())).collect(Collectors.toList()), oAuth2User.getAttributes());
+        clubAuthMember.setName(member.getName());
+        return clubAuthMember;
     }
 
     private ClubMember saveSocialMember(String email) {
